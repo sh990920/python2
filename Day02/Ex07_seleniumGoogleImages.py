@@ -16,16 +16,16 @@ import time
 import urllib.request
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.comon.by import By
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Serive
+from selenium.webdriver.chrome.service import Service
 
 import traceback
 
 def download_images(keyword, num_images=10, output_dir='images'):
     #Chrome 드라이버 경로
-    chrome_dirver_path = '경로'
+    chrome_dirver_path = '/usr/local/bin/chromedirver'
     service = Service(executable_path=chrome_dirver_path)
 
     # Chrome 드라이버 인스턴스 생성
@@ -54,6 +54,27 @@ def download_images(keyword, num_images=10, output_dir='images'):
         try:
             thumbnail.click()
             time.sleep(2)
+
+            # 이미지 요소 대기 및 선택
+            image = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, ".r48jcc.pT0Scc.iPVvYb")
+                )
+            )
+            # 이미지 URL 가져오기
+            image_url = image.get_attribute("src")
+
+            # 이미지 URL이 데이터 형식인 경우 건너뛰기
+            if image_url.startswith("data:"):
+                continue
+
+            # HTTP 요청 헤더에 User_Agent 값을 추가하여 이미지 다운로드
+            headers = {"User_Agent" : "Mozilla/5.0"}
+            request = urllib.request.Request(image_url, headers=headers)
+            with urllib.request.urlopen(request) as response:
+                with open(f"{output_dir}/{keyword}_{index}.jpg", "wb") as out_file:
+                    out_file.write(response.read())
+    
         except Exception as e:
             print(f'Error downloadings image (index): {e}')
             traceback.print_exc()    
